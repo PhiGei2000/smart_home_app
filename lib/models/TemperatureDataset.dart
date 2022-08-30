@@ -7,9 +7,9 @@ import 'package:smart_home_app/models/sensor.dart';
 import 'package:smart_home_app/models/temperatureData.dart';
 import 'package:http/http.dart' as http;
 
-Future<List<TemperatureData>> fetchTemperatureData() async {
+Future<List<TemperatureData>> fetchTemperatureData(int year, int month) async {
   final response = await http.get(Uri.parse(
-      "http://philipp-geil.ddns.net/temperatureData/sensor0/2022_8.csv"));
+      "http://philipp-geil.ddns.net/temperatureData/sensor0/${year}_${month}.csv"));
 
   if (response.statusCode != 200) {
     throw Exception(response.body);
@@ -51,8 +51,11 @@ class TemperatureDataset extends ChangeNotifier {
       UnmodifiableListView(_data);
 
   TemperatureDataset() {
+    final today = DateTime.now();
+
     getSensors().then((value) => addSensors(value));
-    fetchTemperatureData().then((value) => addData(value));
+    fetchTemperatureData(today.year, today.month)
+        .then((value) => addData(value));
   }
 
   void addSensor(Sensor sensor) {
@@ -80,7 +83,15 @@ class TemperatureDataset extends ChangeNotifier {
       return null;
     }
 
-    return _data.where((measure) => measure.sensorId == sensorId).last;
+    return _data.lastWhere((measure) => measure.sensorId == sensorId);
+  }
+
+  UnmodifiableListView<TemperatureData> getMeasures(
+      int year, int month, int day) {
+    return UnmodifiableListView(_data.where((measure) =>
+        measure.time.year == year &&
+        measure.time.month == month &&
+        measure.time.day == day));
   }
 
   void clearData() {
